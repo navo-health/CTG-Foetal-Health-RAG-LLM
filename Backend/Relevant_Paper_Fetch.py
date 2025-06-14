@@ -25,7 +25,7 @@ def retrieve_relevant_chunks(query, n_results=5):
     # Initialize Chroma client
     client = chromadb.Client(Settings(
         chroma_db_impl="duckdb+parquet",
-        persist_directory="Backend/fetal_health_papers_db"
+        persist_directory="Backend/papers_db"
     ))
     
     # Get the collection

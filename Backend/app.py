@@ -2,7 +2,7 @@ from flask import Flask, request, url_for, redirect, render_template, jsonify
 import pandas as pd
 import pickle
 from flask_cors import CORS
-from paper_rag import DiabetesPaperRAG
+from paper_rag import PaperRAG
 import logging
 import os
 from werkzeug.utils import secure_filename
@@ -127,7 +127,7 @@ N_SYNTHETIC_SAMPLES = 100
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
-paper_rag = DiabetesPaperRAG()
+paper_rag = PaperRAG()
 
 # Define feature names in order
 FEATURE_NAMES = [
