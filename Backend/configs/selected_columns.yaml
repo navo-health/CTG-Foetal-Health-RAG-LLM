@@ -1,0 +1,13 @@
+selected_columns:
+  - baseline value
+  - accelerations
+  - fetal_movement
+  - uterine_contractions
+  - prolongued_decelerations
+  - abnormal_short_term_variability
+  - percentage_of_time_with_abnormal_long_term_variability
+  - histogram_max
+  - histogram_number_of_peaks
+  - histogram_mode
+  - histogram_variance
+  - fetal_health

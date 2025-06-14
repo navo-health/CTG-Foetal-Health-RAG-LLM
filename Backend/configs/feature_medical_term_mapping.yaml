@@ -1,0 +1,13 @@
+feature_medical_term_mapping:
+  baseline value: "Baseline FHR"
+  accelerations: "FHR Accelerations"
+  fetal_movement: "Fetal Movement Indicator"
+  uterine_contractions: "Uterine Activity"
+  prolongued_decelerations: "Decelerations (Prolonged)"
+  abnormal_short_term_variability: "Short-Term Variability (Abnormal)"
+  percentage_of_time_with_abnormal_long_term_variability: "Long-Term Variability (Abnormal %)"
+  histogram_max: "Histogram Analysis (Max Value)"
+  histogram_number_of_peaks: "Histogram Analysis (Peaks)"
+  histogram_mode: "Histogram Analysis (Mode)"
+  histogram_variance: "Histogram Analysis (Variance)"
+

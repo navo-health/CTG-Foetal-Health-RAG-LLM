@@ -1,0 +1,29 @@
+.App {
+  text-align: center;
+}
+
+.App-main {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.app {
+    min-height: 100vh;
+    background-color: #f8fafc;
+}
+
+.main-container {
+    padding-top: 64px; /* Height of the navbar */
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+/* Add Font Awesome CDN in index.html if not already present */
