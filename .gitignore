@@ -3,6 +3,7 @@ Backend-2/
 
 # Backend folders
 Backend/mlflow_runs/
+Backend/papers_db/
 
 # Python virtual environment
 venv/

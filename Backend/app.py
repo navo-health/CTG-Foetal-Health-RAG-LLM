@@ -224,25 +224,24 @@ def remove_paper(paper_hash):
 
 @app.route('/papers/search', methods=['GET'])
 def search_papers():
-    """Search papers without adding them to the database"""
+    """Search papers in the database"""
     try:
         query = request.args.get('query', '')
-        max_results = int(request.args.get('max_results', 10))
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        start_index = int(request.args.get('start_index', 0))
-        
-        papers = paper_rag.search_papers_without_adding(
-            query=query,
-            max_results=max_results,
-            start_date=start_date,
-            end_date=end_date,
-            start_index=start_index
-        )
+        if not query:
+            return jsonify({
+                'status': 'error',
+                'message': 'Query parameter is required'
+            }), 400
+            
+        results = paper_rag.search_papers_by_keyword(query)
+        # Convert float32 to float for JSON serialization
+        for result in results:
+            if 'similarity' in result:
+                result['similarity'] = float(result['similarity'])
         
         return jsonify({
             'status': 'success',
-            'papers': papers
+            'results': results
         })
     except Exception as e:
         logger.exception("Error searching papers")

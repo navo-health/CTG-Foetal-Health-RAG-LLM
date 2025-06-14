@@ -1,46 +1,112 @@
+import os
+import shutil
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import requests
 import xmltodict
+from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
 import json
 from datetime import datetime
 from typing import List, Dict
 from pathlib import Path
 import hashlib
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 class PaperRAG:
     def __init__(self):
         # === Project Setup ===
         project_root = Path(__file__).resolve().parent
-        db_path = project_root  / "papers_db"
+        db_path = os.path.join(str(project_root), "papers_db") # Ensure db_path is a string using os.path.join
 
+        # Initialize embeddings
+        self.embeddings = OpenAIEmbeddings(
+            model="text-embedding-ada-002",
+            openai_api_key=os.getenv("OPENAI_API_KEY")
+        )
         self.vectorizer = TfidfVectorizer()
         self.papers = []
         self.vectors = None
+        self.vector_store = None
         self.db_location = db_path
-        self.initialize_papers()
+        self.initialize_vector_store()
 
     def initialize_vector_store(self):
         """Initialize the vector store with downloaded papers"""
         try:
-            if not os.path.exists(self.db_location):
-                papers = self.download_papers()
-                self._add_papers_to_store(papers)
+            # Ensure the database directory exists and has correct permissions
+            os.makedirs(self.db_location, exist_ok=True)
+            os.chmod(self.db_location, 0o755)  # Set directory permissions to rwxr-xr-x
+            
+            # Check if we have an existing index file
+            index_path = os.path.join(self.db_location, "index.faiss")
+            if os.path.exists(index_path):
+                try:
+                    # Try to load existing store
+                    self.vector_store = FAISS.load_local(
+                        self.db_location,
+                        self.embeddings
+                    )
+                    # Verify the store has documents
+                    if len(self.vector_store.docstore._dict) > 0:
+                        print(f"Successfully loaded existing vector store with {len(self.vector_store.docstore._dict)} documents")
+                        return
+                    else:
+                        print("Vector store exists but is empty")
+                except Exception as e:
+                    print(f"Error loading existing store: {e}")
+                    # Don't immediately create a new store, try to recover first
+                    try:
+                        # Try to load the store again with a different approach
+                        self.vector_store = FAISS.load_local(
+                            self.db_location,
+                            self.embeddings,
+                            allow_dangerous_deserialization=True
+                        )
+                        if len(self.vector_store.docstore._dict) > 0:
+                            print(f"Recovered existing vector store with {len(self.vector_store.docstore._dict)} documents")
+                            return
+                    except Exception as recovery_error:
+                        print(f"Recovery attempt failed: {recovery_error}")
             else:
-                self.vector_store = Chroma(
-                    collection_name="diabetes_papers",
-                    persist_directory=self.db_location,
-                    embedding_function=self.embeddings
+                print("No existing vector store found")
+            
+            # Only create a new store if we absolutely have to
+            if not self.vector_store or len(self.vector_store.docstore._dict) == 0:
+                print("Creating new vector store")
+                # Create a new store with a minimal document to initialize dimensions
+                self.vector_store = FAISS.from_texts(
+                    ["Initialize vector store dimensions"],  # Minimal document to set up dimensions
+                    self.embeddings
                 )
-                self._migrate_papers()
+                # Remove the initialization document
+                self.vector_store = FAISS.from_texts(
+                    [],  # Now create empty store
+                    self.embeddings,
+                    index=self.vector_store.index  # Reuse the initialized index
+                )
+                self.vector_store.save_local(self.db_location)
+                print("Created new empty vector store")
+                
         except Exception as e:
-            print(f"Initialization error: {e}")
-            # If initialization fails, start fresh
-            if os.path.exists(self.db_location):
-                shutil.rmtree(self.db_location)
-            papers = self.download_papers()
-            self._add_papers_to_store(papers)
+            print(f"Critical initialization error: {e}")
+            # Only create a new store if we have no store at all
+            if not self.vector_store:
+                print("Attempting to create new store after critical error")
+                # Create store with minimal document and then remove it
+                temp_store = FAISS.from_texts(
+                    ["Initialize vector store dimensions"],
+                    self.embeddings
+                )
+                self.vector_store = FAISS.from_texts(
+                    [],
+                    self.embeddings,
+                    index=temp_store.index
+                )
+                self.vector_store.save_local(self.db_location)
+                print("Created new vector store after critical error")
 
     def initialize_papers(self):
         """Initialize the paper database with ArXiv papers"""
@@ -98,66 +164,60 @@ class PaperRAG:
                 shutil.rmtree(self.db_location)
             
             # Create new database with migrated documents
-            self.vector_store = Chroma(
-                collection_name="diabetes_papers",
-                persist_directory=self.db_location,
-                embedding_function=self.embeddings
-            )
-            self.vector_store.add_documents(documents=documents, ids=ids)
+            self.vector_store = FAISS.from_documents(documents, self.embeddings)
+            self.vector_store.save_local(self.db_location)
             
         except Exception as e:
             print(f"Migration error: {e}")
             # If migration fails, start fresh
             if os.path.exists(self.db_location):
                 shutil.rmtree(self.db_location)
-            self.vector_store = None
+            self.vector_store = FAISS.from_texts(
+                ["Initial document"],
+                self.embeddings
+            )
 
     def _add_papers_to_store(self, papers: List[Dict]):
         """Add papers to the vector store"""
         documents = []
-        ids = []
+        texts = []
+        metadatas = []
         
         for paper in papers:
-            document = Document(
-                page_content=paper['content'],
-                metadata={
-                    "title": paper['title'],
-                    "hash": paper['hash']
-                }
-            )
-            ids.append(paper['hash'])
-            documents.append(document)
+            texts.append(paper['content'])
+            metadatas.append({
+                "title": paper['title'],
+                "hash": paper['hash']
+            })
             
-        self.vector_store = Chroma(
-            collection_name="diabetes_papers",
-            persist_directory=self.db_location,
-            embedding_function=self.embeddings
-        )
-        
-        self.vector_store.add_documents(documents=documents, ids=ids)
+        self.vector_store.add_texts(texts=texts, metadatas=metadatas)
+        self.vector_store.save_local(self.db_location)
 
     def get_all_papers(self) -> List[Dict]:
         """Get all papers currently in the database"""
         try:
-            results = self.vector_store.get()
+            # Get all documents from FAISS
+            docs = self.vector_store.docstore._dict.values()
             papers = []
             
-            for i, doc in enumerate(results['documents']):
-                metadata = results['metadatas'][i]
-                # Handle papers without hash
-                if 'hash' not in metadata:
-                    title = metadata.get('title', f'Paper {i}')
-                    paper_hash = self._generate_paper_hash(title, doc)
-                else:
-                    title = metadata['title']
-                    paper_hash = metadata['hash']
-                    
-                papers.append({
-                    'title': title,
-                    'content': doc,
-                    'hash': paper_hash
-                })
+            for doc in docs:
+                if isinstance(doc, Document):
+                    metadata = doc.metadata
+                    # Handle papers without hash
+                    if 'hash' not in metadata:
+                        title = metadata.get('title', 'Unknown')
+                        paper_hash = self._generate_paper_hash(title, doc.page_content)
+                    else:
+                        title = metadata['title']
+                        paper_hash = metadata['hash']
+                        
+                    papers.append({
+                        'title': title,
+                        'content': doc.page_content,
+                        'hash': paper_hash
+                    })
             
+            print(f"Retrieved {len(papers)} papers from vector store")
             return papers
         except Exception as e:
             print(f"Error getting papers: {e}")
@@ -172,35 +232,62 @@ class PaperRAG:
         if any(p['hash'] == paper_hash for p in existing_papers):
             return {'status': 'error', 'message': 'Paper already exists in database'}
         
-        # Add new paper
-        document = Document(
-            page_content=content,
-            metadata={
-                "title": title,
-                "hash": paper_hash
-            }
-        )
+        # Split content into chunks
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        chunks = splitter.split_text(content)
         
-        self.vector_store.add_documents(documents=[document], ids=[paper_hash])
-        return {'status': 'success', 'message': 'Paper added successfully'}
+        # Add new paper with metadata for each chunk
+        texts = []
+        metadatas = []
+        for i, chunk in enumerate(chunks):
+            texts.append(chunk)
+            metadatas.append({
+                "title": title,
+                "hash": paper_hash,
+                "chunk_index": i,
+                "total_chunks": len(chunks)
+            })
+        
+        try:
+            # Add documents to the store
+            self.vector_store.add_texts(texts=texts, metadatas=metadatas)
+            # Save the store immediately after adding documents
+            self.vector_store.save_local(self.db_location)
+            print(f"Added {len(texts)} chunks and saved to {self.db_location}")
+            return {'status': 'success', 'message': 'Paper added successfully'}
+        except Exception as e:
+            print(f"Error adding paper: {e}")
+            return {'status': 'error', 'message': f'Error adding paper: {str(e)}'}
 
     def remove_duplicates(self) -> Dict:
         """Remove duplicate papers based on hash"""
         papers = self.get_all_papers()
         seen_hashes = set()
-        duplicates = []
+        unique_papers = []
         
         for paper in papers:
-            if paper['hash'] in seen_hashes:
-                duplicates.append(paper['hash'])
-            seen_hashes.add(paper['hash'])
+            if paper['hash'] not in seen_hashes:
+                seen_hashes.add(paper['hash'])
+                unique_papers.append(paper)
         
-        if duplicates:
-            self.vector_store.delete(ids=duplicates)
+        if len(unique_papers) < len(papers):
+            # Create new store with only unique papers
+            texts = []
+            metadatas = []
+            for paper in unique_papers:
+                texts.append(paper['content'])
+                metadatas.append({
+                    "title": paper['title'],
+                    "hash": paper['hash']
+                })
+            
+            self.vector_store = FAISS.from_texts(texts=texts, metadatas=metadatas, embedding=self.embeddings)
+            self.vector_store.save_local(self.db_location)
+            
             return {
                 'status': 'success',
-                'message': f'Removed {len(duplicates)} duplicate papers',
-                'removed_count': len(duplicates)
+                'message': f'Removed {len(papers) - len(unique_papers)} duplicate papers',
+                'removed_count': len(papers) - len(unique_papers)
             }
         
         return {
@@ -491,8 +578,6 @@ class PaperRAG:
             filtered_results = []
             for doc, score in results:
                 # Convert distance score to similarity percentage
-                # The score is a distance metric (lower is better)
-                # We'll use exponential decay to convert it to a similarity score
                 similarity = 100 * (1 / (1 + score))
                 
                 filtered_results.append({
@@ -688,21 +773,50 @@ class PaperRAG:
     def remove_paper(self, paper_hash: str) -> Dict:
         """Remove a specific paper from the database"""
         try:
-            # Check if paper exists
-            papers = self.get_all_papers()
-            if not any(p['hash'] == paper_hash for p in papers):
+            # Get all documents from the vector store
+            docs = self.vector_store.docstore._dict.values()
+            print(f"Total documents before removal: {len(docs)}")
+            new_docs = []
+            
+            # Keep all documents except those with matching paper hash
+            for doc in docs:
+                if isinstance(doc, Document):
+                    metadata = doc.metadata
+                    # Skip documents with matching paper hash (including all chunks)
+                    if metadata.get('hash') == paper_hash:
+                        print(f"Skipping document with hash: {metadata.get('hash')}")
+                        continue
+                    new_docs.append(doc)
+            
+            print(f"Documents after filtering: {len(new_docs)}")
+            
+            if len(new_docs) == len(docs):
                 return {
                     'status': 'error',
                     'message': 'Paper not found in database'
                 }
             
-            # Remove the paper
-            self.vector_store.delete(ids=[paper_hash])
+            # If no documents remain, reinitialize an empty vector store
+            if not new_docs:
+                print("No documents remain, reinitializing empty vector store")
+                self.vector_store = FAISS.from_texts([], self.embeddings)
+                self.vector_store.save_local(self.db_location)
+                return {
+                    'status': 'success',
+                    'message': 'Paper and all its chunks removed successfully (vector store is now empty)'
+                }
+            
+            # Otherwise, create new vector store with remaining documents
+            print("Creating new vector store with remaining documents")
+            self.vector_store = FAISS.from_documents(new_docs, self.embeddings)
+            self.vector_store.save_local(self.db_location)
+            
             return {
                 'status': 'success',
-                'message': 'Paper removed successfully'
+                'message': 'Paper and all its chunks removed successfully'
             }
         except Exception as e:
+            print(f"Error in remove_paper: {e}")
             return {
                 'status': 'error',
                 'message': f'Error removing paper: {str(e)}'
@@ -787,5 +901,5 @@ class PaperRAG:
 
 if __name__ == "__main__":
     rag = PaperRAG()
-    papers = rag.get_relevant_papers_old("fetal heart rate variability analysis")
-    print(json.dumps(papers, indent=2)) 
+    # papers = rag.get_relevant_papers_old("fetal heart rate variability analysis")
+    # print(json.dumps(papers, indent=2)) 
