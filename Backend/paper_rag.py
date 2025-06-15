@@ -14,9 +14,14 @@ from typing import List, Dict
 from pathlib import Path
 import hashlib
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import re
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import Runnable
+from config import OPENAI_API_KEY
 
 class PaperRAG:
-    def __init__(self):
+    def __init__(self, top_features=None):
         # === Project Setup ===
         project_root = Path(__file__).resolve().parent
         db_path = os.path.join(str(project_root), "papers_db") # Ensure db_path is a string using os.path.join
@@ -31,6 +36,7 @@ class PaperRAG:
         self.vectors = None
         self.vector_store = None
         self.db_location = db_path
+        self.top_features = top_features
         self.initialize_vector_store()
 
     def initialize_vector_store(self):
@@ -110,20 +116,54 @@ class PaperRAG:
 
     def initialize_papers(self):
         """Initialize the paper database with ArXiv papers"""
-        # Fetch papers from ArXiv
-        queries = [
-            "fetal health cardiotocography",
-            "CTG analysis machine learning",
-            "fetal monitoring classification"
-        ]
-        
-        for query in queries:
-            papers = self._fetch_arxiv_papers(query)
-            self.papers.extend(papers)
+        try:
+            # Fetch papers from ArXiv
+            queries = [
+                "fetal health cardiotocography",
+                "CTG analysis machine learning",
+                "fetal monitoring classification",
+                "fetal heart rate variability",
+                "fetal monitoring patterns"
+            ]
             
-        # Create document vectors
-        texts = [f"{p['title']} {p['abstract']}" for p in self.papers]
-        self.vectors = self.vectorizer.fit_transform(texts)
+            all_papers = []
+            for query in queries:
+                print(f"Fetching papers for query: {query}")
+                papers = self._fetch_arxiv_papers(query, max_results=10)  # Increased max results
+                all_papers.extend(papers)
+            
+            if all_papers:
+                # Convert papers to documents
+                documents = []
+                for paper in all_papers:
+                    content = f"""
+                    Title: {paper['title']}
+                    Authors: {paper['authors']}
+                    Published: {paper['published']}
+                    
+                    Abstract:
+                    {paper['abstract']}
+                    """
+                    paper_hash = self._generate_paper_hash(paper['title'], content)
+                    documents.append(Document(
+                        page_content=content,
+                        metadata={
+                            "title": paper['title'],
+                            "hash": paper_hash
+                        }
+                    ))
+                
+                # Add to vector store
+                self.vector_store.add_documents(documents)
+                self.vector_store.save_local(self.db_location)
+                print(f"Added {len(documents)} papers to vector store")
+            else:
+                print("No papers found to add")
+                
+        except Exception as e:
+            print(f"Error initializing papers: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _generate_paper_hash(self, title: str, content: str) -> str:
         """Generate a unique hash for a paper based on its title and content"""
@@ -898,6 +938,129 @@ class PaperRAG:
                 'status': 'error',
                 'message': f'Error downloading papers: {str(e)}'
             }
+
+    def _construct_feature_query(self) -> str:
+        """Construct a search query from top features"""
+        if not self.top_features:
+            return "fetal health cardiotocography"
+            
+        # Create a query focusing on the top features
+        query = " AND ".join(self.top_features[:3])  # Use top 3 features
+        return f"fetal health cardiotocography {query}"
+
+    def is_structured_text(self, text: str, min_words: int = 10, min_alpha_ratio: float = 0.5) -> bool:
+        """Check if text is well-structured and meaningful"""
+        # Remove excess whitespace
+        cleaned = text.strip()
+
+        # Reject very short texts
+        if len(cleaned.split()) < min_words:
+            return False
+
+        # Count alphabetic vs total characters
+        alpha_chars = len(re.findall(r'[a-zA-Z]', cleaned))
+        total_chars = len(cleaned)
+
+        # Reject if too many non-alphabetic characters
+        if total_chars == 0 or alpha_chars / total_chars < min_alpha_ratio:
+            return False
+
+        return True
+
+    def retrieve_relevant_chunks(self, top_k: int = 10, min_score: float = 0.3) -> List[Document]:  # Lowered threshold to 0.3
+        """
+        Retrieve relevant chunks from the vector store based on top features
+        
+        Args:
+            top_k (int): Number of chunks to retrieve
+            min_score (float): Minimum similarity score threshold
+            
+        Returns:
+            List[Document]: List of relevant document chunks
+        """
+        try:
+            # Check if vector store is initialized
+            if not self.vector_store:
+                print("Error: Vector store not initialized")
+                return []
+                
+            # Check if we have any documents
+            if len(self.vector_store.docstore._dict) == 0:
+                print("Vector store is empty, adding initial papers...")
+                self.initialize_papers()
+                if len(self.vector_store.docstore._dict) == 0:
+                    print("Error: Failed to add initial papers")
+                    return []
+            
+            # Construct query from top features
+            query = self._construct_feature_query()
+            print(f"Searching with query: {query}")
+            
+            # Perform similarity search
+            results = self.vector_store.similarity_search_with_score(
+                query,
+                k=top_k * 2  # Get more results initially for filtering
+            )
+            print(f"Found {len(results)} initial results")
+            
+            # Filter by relevance score and text quality
+            filtered_chunks = []
+            for doc, score in results:
+                # Convert FAISS distance score to similarity score (0-1 range)
+                similarity_score = 1 / (1 + score)  # Convert distance to similarity
+                print(f"Document distance: {score}, similarity: {similarity_score}")
+                
+                if similarity_score >= min_score and self.is_structured_text(doc.page_content):
+                    filtered_chunks.append((doc, similarity_score))
+                    print(f"Added document with similarity {similarity_score}")
+            
+            print(f"Filtered to {len(filtered_chunks)} chunks")
+            
+            # Sort by similarity score and return top k
+            filtered_chunks.sort(key=lambda x: x[1], reverse=True)
+            return [doc for doc, _ in filtered_chunks[:top_k]]
+            
+        except Exception as e:
+            print(f"Error retrieving relevant chunks: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+def generate_rag_response(query: str, context: str) -> str:
+    """Generate a response using RAG with the given query and context"""
+    
+    # Create the prompt template
+    template = """
+    You are a medical AI assistant specializing in fetal health and CTG analysis.
+    Use the following context to answer the question. If you cannot answer the question 
+    based on the context, say so. Do not make up information.
+
+    Context:
+    {context}
+
+    Question: {query}
+
+    Answer:
+    """
+    
+    # Create prompt template
+    prompt = PromptTemplate.from_template(template)
+    
+    # Initialize OpenAI model
+    llm = ChatOpenAI(
+        model="gpt-4-turbo-preview",
+        temperature=0.5,
+        max_tokens=1000,
+        api_key=OPENAI_API_KEY
+    )
+    
+    # Create and run the chain
+    chain: Runnable = prompt | llm
+    
+    # Generate response
+    response = chain.invoke({"query": query, "context": context})
+    
+    return response.content
 
 if __name__ == "__main__":
     rag = PaperRAG()

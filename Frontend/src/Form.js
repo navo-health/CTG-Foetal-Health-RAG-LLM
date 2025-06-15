@@ -199,59 +199,12 @@ function Form() {
          {loading && <p>Loading...</p>}
 
          {result && (
-            <div className="result">
+            <div>
                <h3>Fetal Health Assessment</h3>
-               <div className="prediction-summary">
-                  <p><strong>Classification:</strong> {result.prediction}</p>
-                  <p><strong>Confidence:</strong> {result.probability}</p>
-               </div>
-               <div className="clinical-explanation">
+               <div>
                   <h4>Clinical Analysis</h4>
-                  <p>{result.message}</p>
+                  <p>{result}</p>
                </div>
-
-               {result.relevant_papers && (
-                  <div className="papers">
-                     <h4>Supporting Research</h4>
-                     {result.relevant_papers.map((paper, index) => (
-                        <div key={index} className="paper">
-                           <h5>{paper.title}</h5>
-                           <p>{paper.content}</p>
-                           {paper.similarity !== undefined && (
-                              <div className="similarity-score">
-                                 <i className="fas fa-percentage"></i>
-                                 <span>Relevance Score: {paper.similarity}%</span>
-                                 <div className="score-bar">
-                                    <div
-                                       className="score-fill"
-                                       style={{
-                                          width: String(paper.similarity) + '%',
-                                          backgroundColor:
-                                             paper.similarity >= 70 ? '#22c55e' :
-                                             paper.similarity >= 50 ? '#eab308' :
-                                             '#ef4444'
-                                       }}
-                                    />
-                                 </div>
-                              </div>
-                           )}
-                           {paper.relevance_factors && paper.relevance_factors.length > 0 && (
-                              <div className="relevance-factors">
-                                 <h4>Key Findings:</h4>
-                                 <ul>
-                                    {paper.relevance_factors.map((factor, index) => (
-                                       <li key={index}>
-                                          <i className="fas fa-check-circle"></i>
-                                          {factor}
-                                       </li>
-                                    ))}
-                                 </ul>
-                              </div>
-                           )}
-                        </div>
-                     ))}
-                  </div>
-               )}
             </div>
          )}
       </form>

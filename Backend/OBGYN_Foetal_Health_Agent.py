@@ -47,12 +47,11 @@ def get_llm_explanation(prediction_info, relevant_papers):
         explanation.append("- Prepare for possible emergency intervention\n")
         explanation.append("- Continuous monitoring essential\n")
     
-    # Add supporting research
+    # Add relevant paper citations
     if relevant_papers:
-        explanation.append("\nRelevant Research Findings:\n")
+        explanation.append("\nSupporting Evidence:\n")
         for paper in relevant_papers:
-            explanation.append(f"- {paper['title']}\n")
-            explanation.append(f"  Published: {paper['published']}\n")
-            explanation.append(f"  Key findings: {paper['abstract']}\n")
+            title = paper.metadata.get('title', 'Unknown Title')
+            explanation.append(f"- {title}\n")
     
     return "".join(explanation) 

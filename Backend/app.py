@@ -12,6 +12,7 @@ import csv
 from io import StringIO
 from test_synthetic_with_SHAP import generate_prediction_insights
 from OBGYN_Foetal_Health_Agent import get_llm_explanation
+from Insights_Relevant_Paper_Aggregator import llm_input_aggregator, generate_clinical_explanation
 import numpy as np
 import shap
 import yaml
@@ -23,6 +24,7 @@ from sklearn.mixture import GaussianMixture
 project_root = Path(__file__).resolve().parent
 model_path = project_root  / "train_model" / "best_random_forest.pkl"
 config_path = project_root / "configs" / "selected_columns.yaml"
+test_data_path = project_root / "data" / "test.csv"
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -127,7 +129,7 @@ N_SYNTHETIC_SAMPLES = 100
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
-paper_rag = PaperRAG()
+paper_rag = PaperRAG(top_features=["feature1", "feature2", "feature3"])
 
 # Define feature names in order
 FEATURE_NAMES = [
@@ -342,7 +344,6 @@ def upload_paper():
 def predict():
     try:
 
-        ####################################################################################
         # Define feature names in order (matching the form input order)
         feature_names = [
             'baseline value',
@@ -389,11 +390,8 @@ def predict():
         
         # Reorder columns to match training data
         features = features[feature_names]
-        ####################################################################################
 
-        # === Define Paths ===
-        project_root = Path(__file__).resolve().parent
-        test_data_path = project_root / "data" / "test.csv"
+        # === SHAP Synthetic Data Generation ===
 
         # Load test data and config
         df_test = pd.read_csv(test_data_path)
@@ -414,42 +412,66 @@ def predict():
         explainer = shap.TreeExplainer(model)
         sample = X_test.sample(n=1, random_state=np.random.randint(0, N_SYNTHETIC_SAMPLES))
         sample = sample.reset_index(drop=True)
-        logger.debug(f"Sample: {sample.to_json()}")
-        logger.debug(f"Features: {features.to_json()}")
-        shap_values = explainer.shap_values(sample)
+        shap_values = explainer.shap_values(features)
+
+        # === SHAP Synthetic Data Generation ===
 
         # Make prediction
         prediction = model.predict(features)[0]
-        logger.debug(f"Prediction: {prediction}")
         probabilities = model.predict_proba(features)[0]
         
         # Map numerical predictions to labels
         label_map = {1: "Normal", 2: "Suspect", 3: "Pathological"}
         predicted_label = label_map[prediction]
-        predicted_prob = float(max(probabilities))
-        
+        # predicted_prob = float(max(probabilities))
+        predicted_class = np.where(model.classes_ == prediction)[0][0]
+        predicted_prob = probabilities[predicted_class]
+
+        # Prediction Insights
+        pred_class_shap = shap_values[0, :, predicted_class]
+        feature_shap_pairs = list(zip(features.columns, pred_class_shap))
+        sorted_features = sorted(feature_shap_pairs, key=lambda x: abs(x[1]), reverse=True)
+        top_features = [f for f, _ in sorted_features[:3]]
+        top_shap_values = [v for _, v in sorted_features[:3]]
+
+        prediction_info = {
+            "predicted_label": predicted_label,
+            "predicted_probability": predicted_prob,
+            "top_features": top_features,
+            "top_shap_values": top_shap_values            
+        }
+        logger.debug(f"prediction_info: {prediction_info}")
+
+        # Retrieve relevant chunks
+        logger.debug(f"top_features: {top_features}")
+        paper_rag.top_features = top_features
+        relevant_chunks = paper_rag.retrieve_relevant_chunks(top_k=10, min_score=0.7)
+
         # Get prediction insights
-        prediction_info = generate_prediction_insights(features)
+        # prediction_info = generate_prediction_insights(features)
+        llm_output = llm_input_aggregator(prediction_info, relevant_chunks)
+        llm_explanation = llm_output['explanation']
         
         # Create query for paper search
-        feature_query = " ".join(prediction_info["top_features"][:3])
-        search_query = f"fetal health CTG {feature_query}"
+        # feature_query = " ".join(prediction_info["top_features"][:3])
+        # search_query = f"fetal health CTG {feature_query}"
         
         # Get relevant papers
-        relevant_papers = paper_rag.get_relevant_papers(search_query)
+        # relevant_papers = paper_rag.get_relevant_papers(search_query)
         
         # Get LLM explanation
-        llm_explanation = get_llm_explanation(prediction_info, relevant_papers)
+        # llm_explanation = get_llm_explanation(prediction_info, relevant_chunks)
+        
+        # relevant_docs = [serialize_document(doc) for doc in relevant_chunks]
         
         # Prepare response
-        response = {
-            'probability': f"{predicted_prob*100:.1f}%",
-            'prediction': predicted_label,
-            'message': llm_explanation,
-            'relevant_papers': relevant_papers
-        }
-        
-        return jsonify(response)
+        # response = {
+        #     'probability': predicted_prob,
+        #     'prediction': predicted_label,
+        #     'message': llm_explanation,
+        #     'relevant_papers': relevant_docs
+        # }
+        return llm_explanation
         
     except Exception as e:
         logger.error(f"Error in prediction: {str(e)}", exc_info=True)
@@ -457,6 +479,12 @@ def predict():
             'error': 'Prediction failed',
             'message': str(e)
         }), 500
+
+def serialize_document(doc):
+    return {
+        "page_content": doc.page_content,
+        "metadata": doc.metadata
+    }
 
 @app.route('/health', methods=['GET'])
 def health_check():

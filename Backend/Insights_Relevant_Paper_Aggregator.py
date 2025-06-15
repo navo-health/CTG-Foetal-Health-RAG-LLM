@@ -1,12 +1,13 @@
 import re
 from datetime import datetime
-from test_synthetic_with_SHAP import generate_prediction_insights
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain_core.runnables import Runnable
 from Relevant_Paper_Fetch import get_top_feature_query, retrieve_relevant_chunks
+from config import OPENAI_API_KEY
+import os
 
-def llm_input_aggregator(prediction_info=None, retrieved_docs=None):
-    # Format prediction section
-    if prediction_info is None:
-        prediction_info = generate_prediction_insights()
+def llm_input_aggregator(prediction_info, retrieved_docs):
     predicted_label = prediction_info['predicted_label']
     predicted_prob = prediction_info['predicted_probability']
     top_features = prediction_info["top_features"]
@@ -26,42 +27,92 @@ def llm_input_aggregator(prediction_info=None, retrieved_docs=None):
     # Format supporting literature section
     sources = "\n=== SUPPORTING ACADEMIC REFERENCES ===\n"
 
-    # Retrieve docs if not provided
-    if retrieved_docs is None:
-        top_features_query = get_top_feature_query()
-        retrieved_docs = retrieve_relevant_chunks(top_features_query)
-
     for i, doc in enumerate(retrieved_docs, 1):
         meta = doc.metadata
         title = meta.get("title", "Unknown Title")
-        subject = meta.get("subject", "")
-        journal = subject.split(" 0.0")[0] if " 0.0" in subject else subject or "Unknown Journal"
+        content = doc.page_content
 
-        raw_date = meta.get("creationdate") or meta.get("creationDate", "")
+        # Extract year from content if available
         year = "Unknown Year"
-        try:
-            year = datetime.fromisoformat(raw_date[:19]).year
-        except Exception:
-            match = re.search(r"D:(\d{4})", raw_date)
-            if match:
-                year = match.group(1)
+        year_match = re.search(r"Published: (\d{4})", content)
+        if year_match:
+            year = year_match.group(1)
 
-        page = meta.get("page", "N/A")
-        excerpt = doc.page_content.strip()
+        # Extract journal from content if available
+        journal = "Unknown Journal"
+        journal_match = re.search(r"Journal: ([^\n]+)", content)
+        if journal_match:
+            journal = journal_match.group(1)
 
         sources += (
             f"\nReference #{i}:\n"
             f"Title: {title}\n"
             f"Journal: {journal} ({year})\n"
-            f"Page: {page}\n"
-            f"Excerpt:\n{excerpt}\n"
+            f"Content:\n{content}\n"
         )
 
     llm_input_str = f"{insights}{sources}"
     
+    # Generate clinical explanation using LLM
+    explanation = generate_clinical_explanation(llm_input_str)
+    
+    return {
+        'raw_input': llm_input_str,
+        'explanation': explanation
+    }
 
-    return llm_input_str
+def generate_clinical_explanation(llm_input: str) -> str:
+    """Generate a clinical explanation using OpenAI's model"""
+    
+    # Prompt template for clinical explanation
+    template = """
+    You are a clinical AI assistant trained to interpret fetal health predictions using academic literature.
+
+    Given the following context:
+
+    {llm_input}
+
+    Your task is to write 1–3 concise clinical paragraphs that:
+
+    - Summarize the model's predicted class and probability.
+    - Identify the most influential SHAP features and explain whether each one supports or contradicts the model's prediction.
+    - Use academic sources from the context to justify each feature's role in the prediction. For example, if "prolonged decelerations" is a negative SHAP feature, explain how the literature supports or refutes its impact on fetal health.
+    - Use APA-style in-text citations when referencing evidence (e.g., Smith et al., 2020 or *Journal Title*, 2019).
+    - Include a short reference list at the end using APA format.
+
+    Use natural, professional clinical language. Do not include bullet points, headings, or excerpts. Only write narrative paragraphs. Do not invent references or cite anything not present in the provided context.
+
+    Keep the total explanation under 400 words.
+    """
+
+    # Create prompt template
+    prompt = PromptTemplate.from_template(template)
+    
+    # Initialize OpenAI model (using GPT-4 for best results)
+    llm = ChatOpenAI(
+        model="gpt-4-turbo-preview",  # Using GPT-4 for high-quality medical explanations
+        temperature=0.5,
+        max_tokens=1000,
+        api_key=OPENAI_API_KEY
+    )
+    
+    # Create and run the chain
+    chain: Runnable = prompt | llm
+    
+    # Generate explanation
+    response = chain.invoke({"llm_input": llm_input})
+    
+    return response.content
 
 if __name__ == "__main__":
-    llm_input = llm_input_aggregator()
-    print(llm_input)
+    # Example usage
+    test_prediction_info = {
+        'predicted_label': 'Normal',
+        'predicted_probability': 0.85,
+        'top_features': ['baseline_value', 'accelerations', 'fetal_movement'],
+        'top_shap_values': [0.3, 0.2, 0.1]
+    }
+    test_docs = []  # Add test documents if needed
+    result = llm_input_aggregator(test_prediction_info, test_docs)
+    print("\n📝 Final Explanation:")
+    print(result['explanation'])
