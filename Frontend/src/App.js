@@ -2,16 +2,76 @@ import { useState } from 'react';
 import './App.css';
 import Form from './Form';
 import { PaperManager, Navbar } from './PaperManager';
+import ReactHtmlParser from 'html-react-parser';  // Import the parser
+
+function LoadingSkeleton() {
+   return (
+      <div className="loading-skeleton">
+         <div className="skeleton-header"></div>
+         <div className="skeleton-content">
+            <div className="skeleton-line"></div>
+            <div className="skeleton-line"></div>
+            <div className="skeleton-line"></div>
+            <div className="skeleton-line"></div>
+            <div className="skeleton-line"></div>
+         </div>
+      </div>
+   );
+}
 
 function App() {
   const [isPaperManagerOpen, setIsPaperManagerOpen] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Helper function to strip out unwanted markdown (backticks) from the result
+  const sanitizeHtmlContent = (content) => {
+    // Remove ```html at the start and ``` at the end of the string
+    return content.replace(/^```html\s*/g, '').replace(/\s*```$/g, '');
+  };
+
+  const handleAnalysisComplete = (results) => {
+    setAnalysisResults(results);
+    setIsAnalyzing(false);
+  };
+
+  const handleAnalysisStart = () => {
+    setIsAnalyzing(true);
+  };
 
   return (
     <div className="app">
       <Navbar onOpenPapers={() => setIsPaperManagerOpen(true)} />
-      
+
       <div className="main-container">
-        <Form />
+        <div className="content-wrapper">
+          {/* Left Column - Form Section */}
+          <div className="form-section">
+            <h2 className="section-title">Upload Paper</h2>
+            <Form 
+              onAnalysisComplete={handleAnalysisComplete}
+              onAnalysisStart={handleAnalysisStart}
+            />
+          </div>
+
+          {/* Right Column - Clinical Analysis Section */}
+          <div className="analysis-section">
+            <h2 className="section-title">Fetal Health Assessment Clinical Analysis</h2>
+            <div className="analysis-content">
+              {isAnalyzing ? (
+                <LoadingSkeleton />
+              ) : analysisResults ? (
+                <div className="analysis-results">
+                  {ReactHtmlParser(sanitizeHtmlContent(analysisResults))}  {/* Parse the sanitized HTML safely */}
+                </div>
+              ) : (
+                <div className="placeholder-message">
+                  Clinical analysis results will appear here
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <PaperManager 

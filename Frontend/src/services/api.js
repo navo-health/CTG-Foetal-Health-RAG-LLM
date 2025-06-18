@@ -45,6 +45,26 @@ export const getAllPapers = async () => {
   }
 };
 
+export const uploadPaper = async (file, title) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (title) {
+    formData.append('title', title);
+  }
+
+  try {
+    const response = await api.post('/papers/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to upload paper:', error);
+    throw error;
+  }
+};
+
 export const addCustomPaper = async (paperData) => {
   try {
     const response = await api.post('/papers/add', paperData);

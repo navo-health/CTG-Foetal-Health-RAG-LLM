@@ -3,7 +3,6 @@ from datetime import datetime
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
-from Relevant_Paper_Fetch import get_top_feature_query, retrieve_relevant_chunks
 from config import OPENAI_API_KEY
 import os
 
@@ -72,7 +71,7 @@ def generate_clinical_explanation(llm_input: str) -> str:
 
     {llm_input}
 
-    Your task is to write 1–3 concise clinical paragraphs that:
+    Your task is to write 1–3 concise clinical paragraphs in HTML format:
 
     - Summarize the model's predicted class and probability.
     - Identify the most influential SHAP features and explain whether each one supports or contradicts the model's prediction.
@@ -80,7 +79,16 @@ def generate_clinical_explanation(llm_input: str) -> str:
     - Use APA-style in-text citations when referencing evidence (e.g., Smith et al., 2020 or *Journal Title*, 2019).
     - Include a short reference list at the end using APA format.
 
-    Use natural, professional clinical language. Do not include bullet points, headings, or excerpts. Only write narrative paragraphs. Do not invent references or cite anything not present in the provided context.
+    Use natural, professional clinical language. Do not include bullet points, headings, or excerpts. Only write narrative paragraphs in HTML. 
+
+    For clarity, you must format your response with the following HTML structure:
+
+    1. **Each clinical paragraph should be wrapped in `<p>` tags**.
+    2. **Important terms or phrases** can be emphasized using `<strong>` tags.
+    3. **Citations** should be placed inside `<cite>` tags to indicate they are references.
+    4. **References section**: The reference list should be formatted inside a `<ul>` list, where each reference is wrapped in an `<li>` tag.
+
+    Do not invent references or cite anything not present in the provided context.
 
     Keep the total explanation under 400 words.
     """

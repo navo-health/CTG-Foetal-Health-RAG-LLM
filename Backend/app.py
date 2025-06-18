@@ -2,7 +2,7 @@ from flask import Flask, request, url_for, redirect, render_template, jsonify
 import pandas as pd
 import pickle
 from flask_cors import CORS
-from paper_rag import PaperRAG
+from paper_rag import paperRag
 import logging
 import os
 from werkzeug.utils import secure_filename
@@ -10,9 +10,7 @@ import PyPDF2
 import docx
 import csv
 from io import StringIO
-from test_synthetic_with_SHAP import generate_prediction_insights
-from OBGYN_Foetal_Health_Agent import get_llm_explanation
-from Insights_Relevant_Paper_Aggregator import llm_input_aggregator, generate_clinical_explanation
+from paper_aggregator import llm_input_aggregator
 import numpy as np
 import shap
 import yaml
@@ -42,14 +40,9 @@ CORS(app, resources={
     }
 })
 
-# File upload configuration
-UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'csv', 'txt'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Create uploads directory if it doesn't exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -80,7 +73,6 @@ def extract_text_from_csv(file_path):
 def process_uploaded_file(file):
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
         try:
@@ -129,7 +121,7 @@ N_SYNTHETIC_SAMPLES = 100
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
-paper_rag = PaperRAG(top_features=["feature1", "feature2", "feature3"])
+paper_rag = paperRag(top_features=["feature1", "feature2", "feature3"])
 
 # Define feature names in order
 FEATURE_NAMES = [
@@ -423,7 +415,6 @@ def predict():
         # Map numerical predictions to labels
         label_map = {1: "Normal", 2: "Suspect", 3: "Pathological"}
         predicted_label = label_map[prediction]
-        # predicted_prob = float(max(probabilities))
         predicted_class = np.where(model.classes_ == prediction)[0][0]
         predicted_prob = probabilities[predicted_class]
 
@@ -448,29 +439,9 @@ def predict():
         relevant_chunks = paper_rag.retrieve_relevant_chunks(top_k=10, min_score=0.7)
 
         # Get prediction insights
-        # prediction_info = generate_prediction_insights(features)
         llm_output = llm_input_aggregator(prediction_info, relevant_chunks)
         llm_explanation = llm_output['explanation']
         
-        # Create query for paper search
-        # feature_query = " ".join(prediction_info["top_features"][:3])
-        # search_query = f"fetal health CTG {feature_query}"
-        
-        # Get relevant papers
-        # relevant_papers = paper_rag.get_relevant_papers(search_query)
-        
-        # Get LLM explanation
-        # llm_explanation = get_llm_explanation(prediction_info, relevant_chunks)
-        
-        # relevant_docs = [serialize_document(doc) for doc in relevant_chunks]
-        
-        # Prepare response
-        # response = {
-        #     'probability': predicted_prob,
-        #     'prediction': predicted_label,
-        #     'message': llm_explanation,
-        #     'relevant_papers': relevant_docs
-        # }
         return llm_explanation
         
     except Exception as e:
@@ -479,12 +450,6 @@ def predict():
             'error': 'Prediction failed',
             'message': str(e)
         }), 500
-
-def serialize_document(doc):
-    return {
-        "page_content": doc.page_content,
-        "metadata": doc.metadata
-    }
 
 @app.route('/health', methods=['GET'])
 def health_check():

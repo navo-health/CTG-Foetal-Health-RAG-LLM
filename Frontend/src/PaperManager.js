@@ -3,7 +3,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { 
     getAllPapers, 
-    addCustomPaper, 
+    uploadPaper, 
     refreshPapers, 
     removeDuplicates,
     removePaper,
@@ -128,45 +128,31 @@ function PaperManager({ isOpen, onClose }) {
     const handleAddPaper = async (e) => {
         e.preventDefault();
         if (!selectedFile) {
-            showToast('Please select a file to upload', 'error');
-            return;
+          showToast('Please select a file to upload', 'error');
+          return;
         }
-
+    
         try {
-            setLoading(true);
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            if (newPaper.title) {
-                formData.append('title', newPaper.title);
-            }
-
-            const response = await fetch('http://localhost:8000/papers/upload', {
-                method: 'POST',
-                body: formData,
-                credentials: 'include',
-            });
-
-            const result = await response.json();
-            
-            if (response.ok) {
-                showToast(result.message);
-                setNewPaper({ title: '', content: '' });
-                setSelectedFile(null);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-                setShowAddForm(false);
-                await loadPapers();
-            } else {
-                throw new Error(result.message || 'Failed to add paper');
-            }
+          setLoading(true);
+          const result = await uploadPaper(selectedFile, newPaper.title);
+    
+          // Success case
+          showToast(result.message);
+          setNewPaper({ title: '', content: '' });
+          setSelectedFile(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          setShowAddForm(false);
+          await loadPapers(); // Assuming this function loads the papers again
         } catch (error) {
-            showToast(error.message, 'error');
+          // Error case
+          showToast(error.message || 'Failed to add paper', 'error');
         } finally {
-            setLoading(false);
-            setUploadProgress(0);
+          setLoading(false);
+          setUploadProgress(0);
         }
-    };
+      };
 
     const handleFileSelect = (e) => {
         const file = e.target.files[0];

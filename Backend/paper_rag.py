@@ -1,7 +1,6 @@
 import os
 import shutil
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import requests
 import xmltodict
@@ -20,18 +19,17 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import Runnable
 from config import OPENAI_API_KEY
 
-class PaperRAG:
+class paperRag:
     def __init__(self, top_features=None):
         # === Project Setup ===
         project_root = Path(__file__).resolve().parent
-        db_path = os.path.join(str(project_root), "papers_db") # Ensure db_path is a string using os.path.join
+        db_path = os.path.join(str(project_root), "papers_db")
 
         # Initialize embeddings
         self.embeddings = OpenAIEmbeddings(
             model="text-embedding-ada-002",
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
-        self.vectorizer = TfidfVectorizer()
         self.papers = []
         self.vectors = None
         self.vector_store = None
@@ -1064,6 +1062,4 @@ def generate_rag_response(query: str, context: str) -> str:
     return response.content
 
 if __name__ == "__main__":
-    rag = PaperRAG()
-    # papers = rag.get_relevant_papers_old("fetal heart rate variability analysis")
-    # print(json.dumps(papers, indent=2)) 
+    rag = paperRag()
