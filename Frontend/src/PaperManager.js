@@ -18,7 +18,7 @@ function Navbar({ onOpenPapers }) {
     return (
         <div className="header-navbar">
             <div className="nav-brand">
-                Diabetes Prediction System
+                Fetal Health Prediction System
             </div>
             <div className="nav-actions">
                 <button className="nav-button" onClick={onOpenPapers}>

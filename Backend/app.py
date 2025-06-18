@@ -412,7 +412,7 @@ def predict():
         explainer = shap.TreeExplainer(model)
         sample = X_test.sample(n=1, random_state=np.random.randint(0, N_SYNTHETIC_SAMPLES))
         sample = sample.reset_index(drop=True)
-        shap_values = explainer.shap_values(features)
+        shap_values = explainer.shap_values(sample)
 
         # === SHAP Synthetic Data Generation ===
 

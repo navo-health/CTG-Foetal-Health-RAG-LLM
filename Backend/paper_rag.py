@@ -945,7 +945,8 @@ class PaperRAG:
             return "fetal health cardiotocography"
             
         # Create a query focusing on the top features
-        query = " AND ".join(self.top_features[:3])  # Use top 3 features
+        feature_description = ", ".join(self.top_features[:3])  # Use top 3 features
+        query = f"Analysis of fetal health using cardiotocography data focusing on features such as {feature_description}"
         return f"fetal health cardiotocography {query}"
 
     def is_structured_text(self, text: str, min_words: int = 10, min_alpha_ratio: float = 0.5) -> bool:
