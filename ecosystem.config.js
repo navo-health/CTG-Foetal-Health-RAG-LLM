@@ -10,8 +10,8 @@ module.exports = {
       {
         name: "backend",
         cwd: "./Backend",
-        script: "app.py",
-        interpreter: "venv/bin/python3",
+        script: "/home/ec2-user/CTG-Foetal-Health-RAG-LLM/Backend/venv/bin/python3",
+        args: "app.py",
         watch: true
       }
     ]
