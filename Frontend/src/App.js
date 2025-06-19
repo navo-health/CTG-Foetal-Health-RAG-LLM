@@ -23,6 +23,7 @@ function App() {
   const [isPaperManagerOpen, setIsPaperManagerOpen] = useState(false);
   const [analysisResults, setAnalysisResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   // Helper function to strip out unwanted markdown (backticks) from the result
   const sanitizeHtmlContent = (content) => {
@@ -39,9 +40,15 @@ function App() {
     setIsAnalyzing(true);
   };
 
+  const handleToggleDarkMode = () => setDarkMode((prev) => !prev);
+
   return (
-    <div className="app">
-      <Navbar onOpenPapers={() => setIsPaperManagerOpen(true)} />
+    <div className={`app${darkMode ? ' dark' : ''}`}>
+      <Navbar 
+        onOpenPapers={() => setIsPaperManagerOpen(true)} 
+        darkMode={darkMode}
+        onToggleDarkMode={handleToggleDarkMode}
+      />
 
       <div className="main-container">
         <div className="content-wrapper">
@@ -51,6 +58,7 @@ function App() {
             <Form 
               onAnalysisComplete={handleAnalysisComplete}
               onAnalysisStart={handleAnalysisStart}
+              darkMode={darkMode}
             />
           </div>
 
@@ -77,6 +85,7 @@ function App() {
       <PaperManager 
         isOpen={isPaperManagerOpen} 
         onClose={() => setIsPaperManagerOpen(false)} 
+        darkMode={darkMode}
       />
     </div>
   );

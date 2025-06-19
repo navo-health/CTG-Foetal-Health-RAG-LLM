@@ -2,22 +2,7 @@ import { useState, useCallback } from 'react';
 import { predictFetalHealth } from './services/api';
 import './Form.css';
 
-function LoadingSkeleton() {
-   return (
-      <div className="loading-skeleton">
-         <div className="skeleton-header"></div>
-         <div className="skeleton-content">
-            <div className="skeleton-line"></div>
-            <div className="skeleton-line"></div>
-            <div className="skeleton-line"></div>
-            <div className="skeleton-line"></div>
-            <div className="skeleton-line"></div>
-         </div>
-      </div>
-   );
-}
-
-function Form({ onAnalysisComplete, onAnalysisStart }) {
+function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
    const [form, setForm] = useState({
       baseline_value: "120",
       accelerations: "0",
@@ -45,12 +30,13 @@ function Form({ onAnalysisComplete, onAnalysisStart }) {
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState(null);
    const [isDragging, setIsDragging] = useState(false);
+   const [showForm, setShowForm] = useState(false);
 
-   const handleSubmit = async (formData) => {
+   const handleSubmit = useCallback(async (formData) => {
       setLoading(true);
       setError(null);
       onAnalysisStart();
-    
+
       try {
         const response = await predictFetalHealth(formData);
         onAnalysisComplete(response);
@@ -60,7 +46,7 @@ function Form({ onAnalysisComplete, onAnalysisStart }) {
       } finally {
         setLoading(false);
       }
-   };
+   }, [onAnalysisComplete, onAnalysisStart]);
 
    const onChange = (event) => {
       const name = event.target.name;
@@ -89,6 +75,7 @@ function Form({ onAnalysisComplete, onAnalysisStart }) {
          });
 
          setForm(newFormData);
+         setShowForm(true);
          return newFormData;
       } catch (error) {
          console.error('Error processing CSV:', error);
@@ -179,7 +166,7 @@ function Form({ onAnalysisComplete, onAnalysisStart }) {
             };
             handleSubmit(formData);
          }}
-         className={`upload-form ${isDragging ? 'dragging' : ''}`}
+         className={`upload-form${isDragging ? ' dragging' : ''}${darkMode ? ' dark' : ''}`}
          onDragOver={handleDragOver}
          onDragLeave={handleDragLeave}
          onDrop={handleDrop}
@@ -192,7 +179,7 @@ function Form({ onAnalysisComplete, onAnalysisStart }) {
             </p>
          </div>
 
-         <div className="form-grid">
+         <div className={`form-grid ${showForm ? 'visible' : 'hidden'}`}>
             <div className="form-group">
                <label htmlFor="baseline_value">Baseline Value (FHR)</label>
                <input type="number" id="baseline_value" name="baseline_value" value={form.baseline_value} onChange={onChange} required />
@@ -299,7 +286,7 @@ function Form({ onAnalysisComplete, onAnalysisStart }) {
             </div>
          </div>
 
-         <div className="form-actions">
+         <div className="form-actions hidden">
             <button type="submit" className="submit-button" disabled={loading}>
                {loading ? 'Analyzing...' : 'Analyze Fetal Health'}
             </button>

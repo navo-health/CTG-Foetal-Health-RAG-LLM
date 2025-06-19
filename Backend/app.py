@@ -73,6 +73,9 @@ def extract_text_from_csv(file_path):
 def process_uploaded_file(file):
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
+        upload_folder = os.path.join(os.path.dirname(__file__), "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
         file.save(file_path)
 
         try:
