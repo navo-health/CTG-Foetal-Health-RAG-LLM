@@ -32,7 +32,7 @@ app = Flask(__name__)
 # Enable CORS with additional options
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],  # Add your React app's URL
+        "origins": "*",  # Allow all origins in production
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Type"],
@@ -460,4 +460,4 @@ def health_check():
     return jsonify({'status': 'healthy'})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', port=5000)
