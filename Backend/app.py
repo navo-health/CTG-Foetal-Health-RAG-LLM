@@ -20,6 +20,7 @@ from sklearn.mixture import GaussianMixture
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from PyPDF2.errors import PdfReadError
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 # === Project Setup ===
 project_root = Path(__file__).resolve().parent
@@ -52,6 +53,8 @@ limiter = Limiter(
 
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'csv', 'txt'}
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max file size
+app.config['JWT_SECRET_KEY'] = 'super-secret-key'  # Change this in production!
+jwt = JWTManager(app)
 
 # === Error Handlers ===
 @app.errorhandler(413)
@@ -168,11 +171,25 @@ FEATURE_NAMES = [
     'histogram_median', 'histogram_variance', 'histogram_tendency'
 ]
 
+HARDCODED_USER = 'admin'
+HARDCODED_PASS = 'password123'
+
 @app.route('/')
 def template_deploy():
     return render_template("index.html")
 
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if username == HARDCODED_USER and password == HARDCODED_PASS:
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    return jsonify({'msg': 'Bad username or password'}), 401
+
 @app.route('/papers', methods=['GET'])
+@jwt_required()
 def get_papers():
     """Get all papers in the database"""
     try:
@@ -189,6 +206,7 @@ def get_papers():
         }), 500
 
 @app.route('/papers/add', methods=['POST'])
+@jwt_required()
 def add_paper():
     """Add a custom paper to the database"""
     try:
@@ -209,6 +227,7 @@ def add_paper():
         }), 500
 
 @app.route('/papers/refresh', methods=['POST'])
+@jwt_required()
 def refresh_papers():
     """Download new papers and add them to the database"""
     try:
@@ -222,6 +241,7 @@ def refresh_papers():
         }), 500
 
 @app.route('/papers/remove-duplicates', methods=['POST'])
+@jwt_required()
 def remove_duplicate_papers():
     """Remove duplicate papers from the database"""
     try:
@@ -235,6 +255,7 @@ def remove_duplicate_papers():
         }), 500
 
 @app.route('/papers/remove/<paper_hash>', methods=['DELETE'])
+@jwt_required()
 def remove_paper(paper_hash):
     """Remove a specific paper from the database"""
     try:
@@ -250,6 +271,7 @@ def remove_paper(paper_hash):
         }), 500
 
 @app.route('/papers/search', methods=['GET'])
+@jwt_required()
 def search_papers():
     """Search papers in the database"""
     try:
@@ -278,6 +300,7 @@ def search_papers():
         }), 500
 
 @app.route('/papers/download', methods=['POST'])
+@jwt_required()
 def download_papers():
     """Download papers with advanced options"""
     try:
@@ -304,6 +327,7 @@ def download_papers():
         }), 500
 
 @app.route('/papers/add-selected', methods=['POST'])
+@jwt_required()
 def add_selected_papers():
     """Add selected papers to the database"""
     try:
@@ -327,6 +351,7 @@ def add_selected_papers():
         }), 500
 
 @app.route('/papers/upload', methods=['POST'])
+@jwt_required()
 def upload_paper():
     """Upload a paper document and add it to the database"""
     try:
@@ -378,6 +403,7 @@ def upload_paper():
         }), 500
 
 @app.route('/predict', methods=['POST'])
+@jwt_required()
 def predict():
     try:
 

@@ -3,6 +3,7 @@ import './App.css';
 import Form from './Form';
 import { PaperManager, Navbar } from './PaperManager';
 import ReactHtmlParser from 'html-react-parser';  // Import the parser
+import LoginPage from './LoginPage';
 
 function LoadingSkeleton() {
    return (
@@ -24,6 +25,7 @@ function App() {
   const [analysisResults, setAnalysisResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('jwt'));
 
   // Helper function to strip out unwanted markdown (backticks) from the result
   const sanitizeHtmlContent = (content) => {
@@ -42,12 +44,22 @@ function App() {
 
   const handleToggleDarkMode = () => setDarkMode((prev) => !prev);
 
+  const handleLogout = () => {
+    localStorage.removeItem('jwt');
+    setLoggedIn(false);
+  };
+
+  if (!loggedIn) {
+    return <LoginPage onLogin={() => setLoggedIn(true)} />;
+  }
+
   return (
     <div className={`app${darkMode ? ' dark' : ''}`}>
       <Navbar 
         onOpenPapers={() => setIsPaperManagerOpen(true)} 
         darkMode={darkMode}
         onToggleDarkMode={handleToggleDarkMode}
+        onLogout={handleLogout}
       />
 
       <div className="main-container">

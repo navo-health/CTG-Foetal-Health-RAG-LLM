@@ -15,7 +15,7 @@ import './PaperManager.css';
 import JSZip from 'jszip';
 
 // Navbar component
-function Navbar({ onOpenPapers, darkMode, onToggleDarkMode }) {
+function Navbar({ onOpenPapers, darkMode, onToggleDarkMode, onLogout }) {
     return (
         <div className="navbar">
             <a href="/" className="navbar-brand">
@@ -30,6 +30,12 @@ function Navbar({ onOpenPapers, darkMode, onToggleDarkMode }) {
                 <button className="darkmode-toggle" onClick={onToggleDarkMode} title="Toggle dark mode">
                     <i className={darkMode ? "fas fa-moon" : "fas fa-sun"}></i>
                 </button>
+                {onLogout && (
+                    <button className="navbar-button" onClick={onLogout} title="Logout">
+                        <i className="fas fa-sign-out-alt"></i>
+                        <div>Logout</div>
+                    </button>
+                )}
             </div>
         </div>
     );
