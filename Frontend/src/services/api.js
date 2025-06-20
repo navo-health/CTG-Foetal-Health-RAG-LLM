@@ -30,6 +30,23 @@ export const predictFetalHealth = async (formData) => {
     });
     return response.data;
   } catch (error) {
+    if (error.response) {
+      if (error.response.status === 413) {
+        const msg = error.response.data && error.response.data.message
+          ? error.response.data.message
+          : 'File too large. Maximum allowed size is 1GB.';
+        throw new Error(msg);
+      }
+      if (error.response.status === 429) {
+        const msg = error.response.data && error.response.data.message
+          ? error.response.data.message
+          : 'Rate limit exceeded. Please try again later.';
+        throw new Error(msg);
+      }
+      if (error.response.data && error.response.data.message) {
+        throw new Error(error.response.data.message);
+      }
+    }
     console.error('Prediction request failed:', error);
     throw error;
   }
@@ -60,6 +77,23 @@ export const uploadPaper = async (file, title) => {
     });
     return response.data;
   } catch (error) {
+    if (error.response) {
+      if (error.response.status === 413) {
+        const msg = error.response.data && error.response.data.message
+          ? error.response.data.message
+          : 'File too large. Maximum allowed size is 1GB.';
+        throw new Error(msg);
+      }
+      if (error.response.status === 429) {
+        const msg = error.response.data && error.response.data.message
+          ? error.response.data.message
+          : 'Rate limit exceeded. Please try again later.';
+        throw new Error(msg);
+      }
+      if (error.response.data && error.response.data.message) {
+        throw new Error(error.response.data.message);
+      }
+    }
     console.error('Failed to upload paper:', error);
     throw error;
   }

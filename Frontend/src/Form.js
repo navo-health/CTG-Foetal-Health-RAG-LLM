@@ -42,7 +42,13 @@ function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
         onAnalysisComplete(response);
       } catch (error) {
         console.error('Error:', error);
-        setError('Failed to get prediction. Please try again.');
+        if (error.message && error.message.includes('Maximum allowed size')) {
+          setError(error.message);
+        } else if (error.message && error.message.includes('Rate limit')) {
+          setError(error.message);
+        } else {
+          setError('Failed to get prediction. Please try again.');
+        }
       } finally {
         setLoading(false);
       }

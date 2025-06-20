@@ -54,7 +54,7 @@ function App() {
         <div className="content-wrapper">
           {/* Left Column - Form Section */}
           <div className="form-section">
-            <h2 className="section-title">Upload Paper</h2>
+            <h2 className="section-title">Upload Data</h2>
             <Form 
               onAnalysisComplete={handleAnalysisComplete}
               onAnalysisStart={handleAnalysisStart}

@@ -221,6 +221,10 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
+.navbar-icon {
+  max-height: 30px;
+}
+
 .navbar-brand {
   color: var(--text-primary);
   font-size: 1.1rem;
@@ -235,7 +239,6 @@
 
 .navbar-brand div {
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none !important;
   line-height: 1.1rem;  /* Align line height with icon size */

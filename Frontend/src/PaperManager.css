@@ -214,9 +214,11 @@
 
 .papers-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: 1fr;
     gap: 1.25rem;
     margin-bottom: 2rem;
+    width: 100%;
+    padding: 0;
 }
 
 .paper-item {
@@ -225,6 +227,8 @@
     border-radius: 8px;
     overflow: hidden;
     transition: var(--transition);
+    position: relative;
+    padding-top: 2.2rem;
 }
 
 .paper-item:hover {
@@ -268,6 +272,10 @@
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
 }
 
 .remove-button:hover {
@@ -635,9 +643,9 @@
 
 /* Pagination Container */
 .pagination-container {
-  display: flex;
+    display: flex;
   justify-content: center;
-  align-items: center;
+    align-items: center;
   margin-top: 1.5rem;
   padding: 0.5rem;
   position: relative;
@@ -648,7 +656,7 @@
     display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  justify-content: center;
+    justify-content: center;
     align-items: center;
   max-width: 100%;
   padding: 0.5rem;
@@ -723,7 +731,7 @@
   height: 2.5rem;
   display: inline-flex;
     align-items: center;
-  justify-content: center;
+    justify-content: center;
   color: var(--text-secondary);
   font-weight: 600;
   flex-shrink: 0;
@@ -734,7 +742,7 @@
   .pagination-container {
     margin-top: 1rem;
     padding: 0.25rem;
-  }
+}
 
   .pagination {
     gap: 0.25rem;
@@ -761,15 +769,15 @@
     padding: 1.5rem;
 }
 
-  .upload-icon i {
+.upload-icon i {
     font-size: 2rem;
 }
 
-  .upload-icon span {
+.upload-icon span {
     font-size: 1rem;
 }
 
-  .upload-icon small {
+.upload-icon small {
     font-size: 0.85rem;
 }
 }
@@ -790,7 +798,7 @@
 
   .pagination .nav-button {
     min-width: 2.5rem;
-  }
+}
 
   .pagination .ellipsis {
     min-width: 2rem;
@@ -811,7 +819,7 @@
 
   .upload-icon small {
     font-size: 0.8rem;
-  }
+}
 }
 
 /* Touch Device Optimization */
@@ -820,7 +828,7 @@
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
     scroll-padding: 0.5rem;
-  }
+}
 
   .pagination button {
     scroll-snap-align: center;
@@ -843,21 +851,46 @@
         grid-template-columns: 1fr;
         width: 95%;
         height: 95vh;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
 
     .sidebar {
-        display: none;
-}
+        display: block;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--gray-200);
+        padding: 1rem 1.25rem;
+        background: var(--gray-50);
+        order: 0;
+        height: auto;
+        min-height: unset;
+        max-height: none;
+        overflow: visible;
+        box-sizing: border-box;
+    }
 
     .main-content {
         padding: 1rem;
-}
+        order: 1;
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+    }
+
+    .paper-manager-actions {
+        flex-direction: row;
+        gap: 1rem;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
 
     .papers-per-page {
-        flex-direction: column;
+    flex-direction: column;
         align-items: flex-start;
         gap: 0.5rem;
-}
+    }
 
     .papers-grid {
         grid-template-columns: 1fr;
@@ -866,6 +899,19 @@
 
     .add-paper-modal {
         width: 95%;
+    }
+
+    .paper-group .pagination {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+        overflow-x: visible;
+    }
+    .paper-group .pagination-button {
+        width: 100%;
+        min-width: 0;
+        margin-right: 0;
+        margin-bottom: 0.25rem;
     }
 }
 
@@ -895,15 +941,15 @@
         border-radius: 0;
 }
 
-    .upload-form-content {
+.upload-form-content {
         padding: 1rem;
 }
 
-    .file-upload-container {
+.file-upload-container {
         padding: 1.25rem;
-    }
+}
 
-    .form-actions {
+.form-actions {
         padding: 1rem;
     }
 
@@ -967,4 +1013,79 @@
 }
 .dark .upload-icon i {
   color: var(--primary) !important;
+}
+
+.paper-group {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    padding: 1.25rem 1rem 1.5rem 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    position: relative;
+}
+
+.paper-group .paper-header {
+    background: none;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-radius: 0;
+}
+
+.paper-group .pagination {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0;
+    overflow-x: auto;
+    padding: 0.25rem 0;
+    margin: 0.5rem 0 0 0;
+    scrollbar-width: thin;
+    scrollbar-color: #e2e8f0 #f7fafc;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+}
+
+.paper-group .pagination-button {
+    width: auto;
+    min-width: unset;
+    height: 1.8rem;
+    padding: 0 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    background: #fff;
+    color: #2d3748;
+    border: 1px solid #e2e8f0;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+    margin-right: 0.1rem;
+}
+
+.paper-group .pagination-button.active {
+    background: #d1f2eb;
+    color: #111;
+    border-color: #a8e6d9;
+    font-weight: 700;
+}
+
+.paper-group .pagination-button:disabled {
+    background: #f7fafc;
+    color: #cbd5e0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.dark .papers-grid,
+.dark .paper-group {
+  background-color: var(--gray-100) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--gray-300) !important;
 } 

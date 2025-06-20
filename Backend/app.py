@@ -17,6 +17,9 @@ import yaml
 from pathlib import Path
 from train_model.model import FoetalHealthModel
 from sklearn.mixture import GaussianMixture
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from PyPDF2.errors import PdfReadError
 
 # === Project Setup ===
 project_root = Path(__file__).resolve().parent
@@ -40,19 +43,43 @@ CORS(app, resources={
     }
 })
 
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'csv', 'txt'}
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+# === Rate Limiting ===
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per minute"]
+)
 
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'csv', 'txt'}
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max file size
+
+# === Error Handlers ===
+@app.errorhandler(413)
+def handle_large_file(e):
+    return jsonify({
+        'status': 'error',
+        'message': 'File too large. Maximum allowed size is 1GB.'
+    }), 413
+
+@app.errorhandler(429)
+def handle_rate_limit(e):
+    return jsonify({
+        'status': 'error',
+        'message': 'Rate limit exceeded. Please try again later.'
+    }), 429
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def extract_text_from_pdf(file_path):
     text = ""
-    with open(file_path, 'rb') as file:
-        pdf_reader = PyPDF2.PdfReader(file)
-        for page in pdf_reader.pages:
-            text += page.extract_text() + "\n"
+    try:
+        with open(file_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\n"
+    except PdfReadError:
+        raise ValueError("Invalid or corrupt PDF file.")
     return text
 
 def extract_text_from_docx(file_path):
@@ -93,14 +120,17 @@ def process_uploaded_file(file):
 
             # Clean up the uploaded file
             os.remove(file_path)
-            
             return text
+        except ValueError as ve:
+            logger.warning(f"Invalid file: {filename} - {ve}")
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            raise ve
         except Exception as e:
             logger.exception(f"Error processing file: {filename}")
             if os.path.exists(file_path):
                 os.remove(file_path)
             raise e
-
     return None
 
 def generate_synthetic_data(df, n_samples=100):
@@ -317,7 +347,19 @@ def upload_paper():
         title = request.form.get('title', file.filename)
 
         # Process the uploaded file
-        content = process_uploaded_file(file)
+        try:
+            content = process_uploaded_file(file)
+        except ValueError as ve:
+            return jsonify({
+                'status': 'error',
+                'message': str(ve)
+            }), 400
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to process file.'
+            }), 500
+
         if not content:
             return jsonify({
                 'status': 'error',
