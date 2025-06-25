@@ -21,6 +21,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from PyPDF2.errors import PdfReadError
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from datetime import timedelta
 
 # === Project Setup ===
 project_root = Path(__file__).resolve().parent
@@ -54,6 +55,7 @@ limiter = Limiter(
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'csv', 'txt'}
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max file size
 app.config['JWT_SECRET_KEY'] = 'super-secret-key'  # Change this in production!
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=4)
 jwt = JWTManager(app)
 
 # === Error Handlers ===

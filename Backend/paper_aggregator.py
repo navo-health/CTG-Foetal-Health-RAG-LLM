@@ -5,8 +5,14 @@ from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from config import OPENAI_API_KEY
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def llm_input_aggregator(prediction_info, retrieved_docs):
+    logger.debug(f"retrieved_docs: {retrieved_docs}")
     predicted_label = prediction_info['predicted_label']
     predicted_prob = prediction_info['predicted_probability']
     top_features = prediction_info["top_features"]
@@ -62,7 +68,7 @@ def llm_input_aggregator(prediction_info, retrieved_docs):
 
 def generate_clinical_explanation(llm_input: str) -> str:
     """Generate a clinical explanation using OpenAI's model"""
-    
+
     # Prompt template for clinical explanation
     template = """
     You are a clinical AI assistant trained to interpret fetal health predictions using academic literature.
@@ -79,6 +85,13 @@ def generate_clinical_explanation(llm_input: str) -> str:
     - Use APA-style in-text citations when referencing evidence (e.g., Smith et al., 2020 or *Journal Title*, 2019).
     - Include a short reference list at the end using APA format.
 
+    IMPORTANT CITATION REQUIREMENTS:
+    - Do NOT fabricate, invent, or make up any citations or references
+    - Only cite sources that are explicitly provided in the context above
+    - Use the exact titles, authors, and publication details as they appear in the provided sources
+    - If no relevant sources are provided in the context, do not include citations
+    - Every citation must correspond to an actual source from the given context
+
     Use natural, professional clinical language. Do not include bullet points, headings, or excerpts. Only write narrative paragraphs in HTML. 
 
     For clarity, you must format your response with the following HTML structure:
@@ -88,7 +101,7 @@ def generate_clinical_explanation(llm_input: str) -> str:
     3. **Citations** should be placed inside `<cite>` tags to indicate they are references.
     4. **References section**: The reference list should be formatted inside a `<ul>` list, where each reference is wrapped in an `<li>` tag.
 
-    Do not invent references or cite anything not present in the provided context.
+    Only include references that were actually cited from the provided context. Do not create a references section if no sources from the context were used.
 
     Keep the total explanation under 400 words.
     """
