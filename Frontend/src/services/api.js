@@ -19,16 +19,6 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-export const checkBackendHealth = async () => {
-  try {
-    const response = await api.get('/health');
-    return response.data.status === 'healthy';
-  } catch (error) {
-    console.error('Backend health check failed:', error);
-    return false;
-  }
-};
-
 export const predictFetalHealth = async (formData) => {
   try {
     const response = await api.post('/predict', formData, {

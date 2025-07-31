@@ -524,10 +524,5 @@ def predict():
             'message': str(e)
         }), 500
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint for frontend to verify backend connectivity"""
-    return jsonify({'status': 'healthy'})
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
