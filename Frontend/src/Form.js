@@ -100,6 +100,15 @@ function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
       setIsDragging(false);
    }, []);
 
+   const downloadSampleData = (filename) => {
+      const link = document.createElement('a');
+      link.href = `${process.env.PUBLIC_URL}/${filename}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+   };
+
    const handleDrop = useCallback(async (e) => {
       e.preventDefault();
       setIsDragging(false);
@@ -179,9 +188,9 @@ function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
       >
          <div className="form-info">
             <p className="form-description">
-               Enter CTG (Cardiotocography) data for fetal health assessment. The form is pre-filled with sample data.
+               <span onClick={() => downloadSampleData('ctg_data_1.csv')}>Normal</span>, <span onClick={() => downloadSampleData('ctg_data_2.csv')}>Suspicious</span>, <span onClick={() => downloadSampleData('ctg_data_3.csv')}>Pathological</span> CSV data samples.
                <br />
-               <strong>Drag and drop a CSV file to automatically fill and submit the form.</strong>
+               <strong>Drag and drop a CSV (Comma-Separated Values) file with CTG data to generate fetal health analysis report.</strong>
             </p>
          </div>
 

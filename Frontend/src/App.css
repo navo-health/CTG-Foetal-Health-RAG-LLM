@@ -206,6 +206,22 @@
   font-size: 0.95rem;
 }
 
+.analysis-results.clickable {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.analysis-results.clickable:hover {
+  background-color: var(--gray-100);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .analysis-results.clickable:hover {
+  background-color: var(--gray-200);
+}
+
 /* Navbar Styles */
 .navbar {
   background-color: var(--white);
@@ -652,4 +668,206 @@ button i {
   background: var(--primary-light);
   border-color: var(--primary);
   color: var(--primary);
+}
+
+/* Help Button and Modal Styles */
+.section-title-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.section-title-container .section-title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.help-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  background-color: var(--gray-100);
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.help-button:hover {
+  color: var(--text-primary);
+  background-color: var(--gray-200);
+  transform: scale(1.1);
+}
+
+.help-modal {
+  background-color: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  margin: 2rem auto;
+}
+
+.help-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+  position: sticky;
+  top: 0;
+  background-color: var(--white);
+  border-radius: 12px 12px 0 0;
+}
+
+.help-modal-header h3 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  font-family: var(--font-ui);
+}
+
+.help-modal-content {
+  padding: 1.5rem;
+}
+
+.field-description {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.field-description:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.field-description h4 {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  font-family: var(--font-ui);
+}
+
+.field-description p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+  font-family: var(--font-content);
+}
+
+/* Dark mode styles for help modal */
+.dark .help-button {
+  background-color: var(--gray-200);
+  color: var(--text-secondary);
+}
+
+.dark .help-button:hover {
+  background-color: var(--gray-300);
+  color: var(--text-primary);
+}
+
+.dark .help-modal {
+  background-color: var(--gray-100);
+}
+
+.dark .help-modal-header {
+  background-color: var(--gray-100);
+  border-bottom-color: var(--gray-300);
+}
+
+.dark .help-modal-header h3 {
+  color: var(--text-primary);
+}
+
+.dark .field-description {
+  border-bottom-color: var(--gray-300);
+}
+
+.dark .field-description h4 {
+  color: var(--text-primary);
+}
+
+.dark .field-description p {
+  color: var(--text-secondary);
+}
+
+.analysis-modal-content {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.analysis-modal-content p {
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.analysis-modal-content strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.analysis-modal-content cite {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.analysis-modal-content ul {
+  padding-left: 1.25rem;
+  margin-top: 1.25rem;
+  color: var(--text-primary);
+}
+
+.analysis-modal-content li {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Responsive styles for help modal */
+@media (max-width: 768px) {
+  .help-modal {
+    width: 95%;
+    margin: 1rem auto;
+    max-height: 90vh;
+  }
+  
+  .help-modal-header {
+    padding: 1rem;
+  }
+  
+  .help-modal-content {
+    padding: 1rem;
+  }
+  
+  .field-description {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  .field-description h4 {
+    font-size: 0.9rem;
+  }
+  
+  .field-description p {
+    font-size: 0.8rem;
+  }
 }

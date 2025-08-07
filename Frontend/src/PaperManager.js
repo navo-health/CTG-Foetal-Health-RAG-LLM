@@ -378,7 +378,7 @@ function PaperManager({ isOpen, onClose, darkMode }) {
         for (let i = 1; i <= totalPages; i++) {
             pages.push(
                 <button
-                    key={i}
+                    key={`main-page-${i}`}
                     onClick={() => paginate(i)}
                     className={`pagination-button ${currentPage === i ? 'active' : ''}`}
                 >
@@ -495,7 +495,7 @@ function PaperManager({ isOpen, onClose, darkMode }) {
                                     const chunkEnd = chunkStart + CHUNKS_PER_PAPER_PAGE;
                                     const currentChunks = group.chunks.slice(chunkStart, chunkEnd);
                                     return (
-                                        <div key={group.title + groupIdx} className="paper-group">
+                                        <div key={`${group.title}-${groupIdx}-${group.chunks[0]?.hash || 'no-hash'}`} className="paper-group">
                                             <div className="paper-header">
                                                 <h3>{group.title}</h3>
                                                 <button
@@ -507,8 +507,8 @@ function PaperManager({ isOpen, onClose, darkMode }) {
                                                     <i className="fas fa-trash-alt"></i>
                                                 </button>
                                             </div>
-                                            {currentChunks.map((paper) => (
-                                                <div key={paper.hash} className="paper-item">
+                                            {currentChunks.map((paper, chunkIndex) => (
+                                                <div key={`${paper.hash}-${chunkIndex}-${groupIdx}`} className="paper-item">
                                                     <div className="paper-content">
                                                         <p>{paper.content}</p>
                                                         {paper.similarity !== undefined && (
@@ -533,7 +533,7 @@ function PaperManager({ isOpen, onClose, darkMode }) {
                                                                 <h4>Relevance Factors:</h4>
                                                                 <ul>
                                                                     {paper.relevance_factors.map((factor, index) => (
-                                                                        <li key={index}>
+                                                                        <li key={`${paper.hash}-factor-${index}-${groupIdx}`}>
                                                                             <i className="fas fa-check-circle"></i>
                                                                             {factor}
                                                                         </li>
@@ -568,7 +568,7 @@ function PaperManager({ isOpen, onClose, darkMode }) {
                                                     </button>
                                                     {Array.from({ length: totalChunkPages }, (_, i) => (
                                                         <button
-                                                            key={i + 1}
+                                                            key={`${group.title}-chunk-page-${i + 1}`}
                                                             onClick={() => setChunkPage(group.title, i + 1)}
                                                             className={`pagination-button${chunkPage === i + 1 ? ' active' : ''}`}
                                                         >

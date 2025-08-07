@@ -321,6 +321,13 @@ p {
    font-weight: 500;
 }
 
+.form-description span {
+   cursor: pointer; 
+   color: var(--text-secondary);
+   display: inline;
+   text-decoration: underline
+}
+
 .form-grid {
    display: grid;
    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
