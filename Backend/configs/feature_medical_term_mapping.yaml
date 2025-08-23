@@ -1,5 +1,5 @@
 feature_medical_term_mapping:
-  baseline value: "Baseline FHR"
+  baseline_value: "Baseline FHR"
   accelerations: "FHR Accelerations"
   fetal_movement: "Fetal Movement Indicator"
   uterine_contractions: "Uterine Activity"

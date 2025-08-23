@@ -39,7 +39,12 @@ function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
 
       try {
         const response = await predictFetalHealth(formData);
-        onAnalysisComplete(response);
+        // Include the CTG data in the response for the 3D model
+        const responseWithData = {
+          analysis: response, // Preserve the original analysis content
+          ctgData: formData
+        };
+        onAnalysisComplete(responseWithData);
       } catch (error) {
         console.error('Error:', error);
         if (error.message && error.message.includes('Maximum allowed size')) {
@@ -121,7 +126,7 @@ function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
             const newFormData = processCSVData(csvData);
             if (newFormData) {
                const formData = {
-                  "baseline value": parseFloat(newFormData.baseline_value),
+                  "baseline_value": parseFloat(newFormData.baseline_value),
                   "accelerations": parseFloat(newFormData.accelerations),
                   "fetal_movement": parseFloat(newFormData.fetal_movement),
                   "uterine_contractions": parseFloat(newFormData.uterine_contractions),
@@ -157,7 +162,7 @@ function Form({ onAnalysisComplete, onAnalysisStart, darkMode }) {
          onSubmit={(e) => {
             e.preventDefault();
             const formData = {
-               "baseline value": parseFloat(form.baseline_value),
+               "baseline_value": parseFloat(form.baseline_value),
                "accelerations": parseFloat(form.accelerations),
                "fetal_movement": parseFloat(form.fetal_movement),
                "uterine_contractions": parseFloat(form.uterine_contractions),

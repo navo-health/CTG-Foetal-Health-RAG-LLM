@@ -1241,6 +1241,112 @@ button i {
   overflow: hidden;
 }
 
+/* 3D Model Panel Styles */
+.model-3d-panel {
+  width: 25%;
+  background-color: var(--white);
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: 280px;
+  max-width: 350px;
+}
+
+.dark .model-3d-panel {
+  background-color: var(--gray-100);
+  border-right-color: var(--gray-300);
+}
+
+.model-3d-header {
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.model-3d-header h4 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  font-family: var(--font-ui);
+}
+
+.model-3d-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+  font-family: var(--font-content);
+}
+
+.model-3d-container {
+  flex: 1;
+  min-height: 400px;
+  position: relative;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.model-3d-legend {
+  padding: 1rem 1.5rem;
+  background-color: var(--gray-50);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.dark .model-3d-legend {
+  background-color: var(--gray-200);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.legend-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.legend-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-color.womb {
+  background-color: #ff6b6b;
+}
+
+.legend-color.fetus {
+  background-color: #4ecdc4;
+}
+
+.legend-color.heart {
+  background-color: #ff8e53;
+}
+
 .analysis-modal-content {
   flex: 1;
   padding: 1.5rem;
@@ -1248,6 +1354,11 @@ button i {
   color: var(--text-primary);
   line-height: 1.6;
   min-width: 0;
+  border-right: 1px solid var(--gray-200);
+}
+
+.dark .analysis-modal-content {
+  border-right-color: var(--gray-300);
 }
 
 .analysis-modal-content p {
@@ -1275,6 +1386,19 @@ button i {
 .analysis-modal-content li {
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
+}
+
+/* Responsive styles for 3D panel and modal */
+@media (max-width: 1200px) {
+  .model-3d-panel {
+    width: 30%;
+    min-width: 250px;
+  }
+  
+  .chat-section {
+    width: 35%;
+    min-width: 280px;
+  }
 }
 
 /* Responsive styles for help modal */
@@ -1367,6 +1491,18 @@ button i {
   .analysis-modal-content-wrapper {
     flex-direction: column;
     height: calc(90vh - 120px);
+  }
+
+  .model-3d-panel,
+  .analysis-modal-content,
+  .chat-section {
+    width: 100%;
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .model-3d-container {
+    min-height: 300px;
   }
 
   .chat-section {

@@ -1,5 +1,5 @@
 selected_columns:
-  - baseline value
+  - baseline_value
   - accelerations
   - fetal_movement
   - uterine_contractions

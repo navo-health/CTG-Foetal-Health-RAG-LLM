@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, Suspense, useCallback } from 'react';
 import './App.css';
 import Form from './Form';
 import { PaperManager, Navbar } from './PaperManager';
 import ReactHtmlParser from 'html-react-parser';  // Import the parser
 import LoginPage from './LoginPage';
+import FetalModel3D from './components/FetalModel3D';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 
 function LoadingSkeleton() {
    return (
@@ -21,12 +24,11 @@ function LoadingSkeleton() {
 }
 
 // Analysis Modal Component
-function AnalysisModal({ isOpen, onClose, analysisResults, darkMode }) {
+function AnalysisModal({ isOpen, onClose, analysisResults, darkMode, ctgData }) {
    const [chatMessages, setChatMessages] = useState([]);
    const [inputMessage, setInputMessage] = useState('');
    const [isThinking, setIsThinking] = useState(false);
-
-   if (!isOpen || !analysisResults) return null;
+   const [orbitControlsRef, setOrbitControlsRef] = useState(null);
 
    // Helper function to strip out unwanted markdown (backticks) from the result
    const sanitizeHtmlContent = (content) => {
@@ -70,6 +72,10 @@ function AnalysisModal({ isOpen, onClose, analysisResults, darkMode }) {
       }
    };
 
+
+
+   if (!isOpen || !analysisResults) return null;
+
    return (
       <div className="modal-overlay" onClick={onClose}>
          <div className="analysis-modal" onClick={e => e.stopPropagation()}>
@@ -80,11 +86,74 @@ function AnalysisModal({ isOpen, onClose, analysisResults, darkMode }) {
                </button>
             </div>
             <div className="analysis-modal-content-wrapper">
-               <div className="analysis-modal-content">
-                  {ReactHtmlParser(sanitizeHtmlContent(analysisResults))}
+               {/* 3D Model Panel - Left Side */}
+               <div className="model-3d-panel">
+                  <div className="model-3d-header">
+                     <h4>3D Fetal Model</h4>
+                     <p>Interactive visualization of CTG data</p>
+                  </div>
+                  <div className="model-3d-container">
+                     <Suspense fallback={
+                        <div style={{ 
+                           display: 'flex', 
+                           alignItems: 'center', 
+                           justifyContent: 'center', 
+                           height: '100%',
+                           color: darkMode ? '#ffffff' : '#000000'
+                        }}>
+                           Loading 3D Model...
+                        </div>
+                     }>
+                                                                         <Canvas
+                           camera={{ position: [0, 0, 10], fov: 75 }}
+                           style={{ background: darkMode ? '#1a1a1a' : '#f8f9fa' }}
+                        >
+                           <FetalModel3D 
+                              ctgData={ctgData} 
+                              darkMode={darkMode}
+                           />
+                           <OrbitControls 
+                              ref={setOrbitControlsRef}
+                              enablePan={true}
+                              enableZoom={true}
+                              enableRotate={true}
+                              minDistance={2}
+                              maxDistance={10}
+                           />
+                        </Canvas>
+                     </Suspense>
+                  </div>
+                  <div className="model-3d-legend">
+                     <div className="legend-item">
+                        <div className="legend-color womb"></div>
+                        <div className="legend-content">
+                           <span className="legend-label">Womb:</span>
+                           <span className="legend-value">{ctgData?.uterine_contractions || 0}</span>
+                        </div>
+                     </div>
+                     <div className="legend-item">
+                        <div className="legend-color fetus"></div>
+                        <div className="legend-content">
+                           <span className="legend-label">Fetus:</span>
+                           <span className="legend-value">{ctgData?.accelerations || 0}</span>
+                        </div>
+                     </div>
+                     <div className="legend-item">
+                        <div className="legend-color heart"></div>
+                        <div className="legend-content">
+                           <span className="legend-label">Heart:</span>
+                           <span className="legend-value">{ctgData?.baseline_value || 120} BPM</span>
+                        </div>
+                     </div>
+                  </div>
                </div>
 
-               {/* Chat Interface */}
+               {/* Analysis Content - Center */}
+               <div className="analysis-modal-content">
+                  {ReactHtmlParser(sanitizeHtmlContent(analysisResults.analysis || analysisResults))}
+               </div>
+
+               {/* Chat Interface - Right Side */}
                <div className="chat-section">
                   <div className="chat-header">
                      <h4>Ask about the Fetal Health Report</h4>
@@ -444,9 +513,15 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('jwt'));
+  const [ctgData, setCtgData] = useState(null);
 
   // Helper function to strip out unwanted markdown (backticks) from the result
   const sanitizeHtmlContent = (content) => {
+    // Ensure content is a string before processing
+    if (typeof content !== 'string') {
+      console.warn('sanitizeHtmlContent received non-string content:', content);
+      return '';
+    }
     // Remove ```html at the start and ``` at the end of the string
     return content.replace(/^```html\s*/g, '').replace(/\s*```$/g, '');
   };
@@ -454,6 +529,10 @@ function App() {
   const handleAnalysisComplete = (results) => {
     setAnalysisResults(results);
     setIsAnalyzing(false);
+    // Store the CTG data for the 3D model
+    if (results && results.ctgData) {
+      setCtgData(results.ctgData);
+    }
   };
 
   const handleAnalysisStart = () => {
@@ -513,7 +592,7 @@ function App() {
                   onClick={() => setIsAnalysisModalOpen(true)}
                   style={{ cursor: 'pointer' }}
                 >
-                  {ReactHtmlParser(sanitizeHtmlContent(analysisResults))}  {/* Parse the sanitized HTML safely */}
+                  {ReactHtmlParser(sanitizeHtmlContent(analysisResults.analysis || analysisResults))}  {/* Parse the sanitized HTML safely */}
                 </div>
               ) : (
                 <div className="placeholder-message">
@@ -542,6 +621,7 @@ function App() {
         onClose={() => setIsAnalysisModalOpen(false)} 
         analysisResults={analysisResults}
         darkMode={darkMode}
+        ctgData={ctgData}
       />
     </div>
   );

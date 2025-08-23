@@ -163,7 +163,7 @@ paper_rag = paperRag(top_features=["feature1", "feature2", "feature3"])
 
 # Define feature names in order
 FEATURE_NAMES = [
-    'baseline value', 'accelerations', 'fetal_movement',
+    'baseline_value', 'accelerations', 'fetal_movement',
     'uterine_contractions', 'light_decelerations', 'severe_decelerations',
     'prolongued_decelerations', 'abnormal_short_term_variability',
     'mean_value_of_short_term_variability', 'percentage_of_time_with_abnormal_long_term_variability',
@@ -411,7 +411,7 @@ def predict():
 
         # Define feature names in order (matching the form input order)
         feature_names = [
-            'baseline value',
+            'baseline_value',
             'accelerations',
             'fetal_movement',
             'uterine_contractions',

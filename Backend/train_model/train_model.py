@@ -65,7 +65,7 @@ def train_and_save_model():
     project_root = Path(__file__).resolve().parents[1]
     train_data_path = project_root / "data" / "train.csv"
     config_path = project_root / "configs" / "selected_columns.yaml"
-    artifacts_path = project_root / "model_train"
+    artifacts_path = project_root / "train_model"
 
     # === Load Data & Features ===
     df = pd.read_csv(train_data_path)
